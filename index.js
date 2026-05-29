@@ -11,191 +11,177 @@ const VERIFY_TOKEN = process.env.VERIFY_TOKEN;
 const DB_FILE = 'users.json';
 if (!fs.existsSync(DB_FILE)) fs.writeFileSync(DB_FILE, '{}');
 
-function getUserData(number) {
+function getUser(number) {
   const db = JSON.parse(fs.readFileSync(DB_FILE));
-  return db[number] || { step: 'start', role: null, data: {} };
+  return db[number] || { step: 'welcome', data: {} };
 }
 
-function saveUserData(number, data) {
+function saveUser(number, data) {
   const db = JSON.parse(fs.readFileSync(DB_FILE));
-  db[number] = {...getUserData(number),...data, lastUpdate: new Date().toISOString() };
+  db[number] = {...getUser(number),...data};
   fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2));
 }
 
-async function sendMessage(to, text) {
+async function sendButtons(to, bodyText, buttons) {
+  await axios.post(`https://graph.facebook.com/v20.0/${PHONE_NUMBER_ID}/messages`, {
+    messaging_product: 'whatsapp',
+    to: to,
+    type: 'interactive',
+    interactive: {
+      type: 'button',
+      body: { text: bodyText },
+      action: { buttons: buttons }
+    }
+  }, { headers: { 'Authorization': `Bearer ${WHATSAPP_TOKEN}` } });
+}
+
+async function sendText(to, text) {
   await axios.post(`https://graph.facebook.com/v20.0/${PHONE_NUMBER_ID}/messages`, {
     messaging_product: 'whatsapp',
     to: to,
     text: { body: text }
-  }, {
-    headers: { 'Authorization': `Bearer ${WHATSAPP_TOKEN}` }
-  });
+  }, { headers: { 'Authorization': `Bearer ${WHATSAPP_TOKEN}` } });
 }
 
 app.get('/webhook', (req, res) => {
-  if (req.query['hub.verify_token'] === VERIFY_TOKEN) {
-    res.send(req.query['hub.challenge']);
-  } else {
-    res.sendStatus(403);
-  }
+  if (req.query['hub.verify_token'] === VERIFY_TOKEN) res.send(req.query['hub.challenge']);
+  else res.sendStatus(403);
 });
 
 app.post('/webhook', async (req, res) => {
-  const entry = req.body.entry?.[0]?.changes?.[0]?.value;
-  const msg = entry?.messages?.[0];
+  const msg = req.body.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
+  if (!msg) return res.sendStatus(200);
 
-  if (msg) {
-    const from = msg.from;
-    const msg_body = msg.text?.body?.toLowerCase().trim() || '';
-    const user = getUserData(from);
+  const from = msg.from;
+  const user = getUser(from);
+  
+  // Button ka ID nikalo
+  let btn_id = '';
+  if (msg.type === 'interactive' && msg.interactive.type === 'button_reply') {
+    btn_id = msg.interactive.button_reply.id;
+  } else if (msg.type === 'text') {
+    btn_id = msg.text.body.toLowerCase();
+  }
+
+  // STEP 1: WELCOME - Kuch bhi bhejo button aa jayega
+  if (user.step === 'welcome' || btn_id === 'restart') {
+    saveUser(from, { step: 'role', data: {} });
+    await sendButtons(from,
+      `Welcome to NearMe 🙏\n\nHum aapki kaise help kar sakte hai?`,
+      [
+        { type: 'reply', reply: { id: 'role_sale', title: '🛒 Sale' } },
+        { type: 'reply', reply: { id: 'role_service', title: '🔧 Service' } },
+        { type: 'reply', reply: { id: 'role_customer', title: '👤 Customer' } }
+      ]
+    );
+  
+  // STEP 2: ROLE KE BAAD
+  } else if (user.step === 'role') {
+    if (btn_id === 'role_customer') {
+      saveUser(from, { step: 'customer_dist', role: 'customer' });
+      await sendButtons(from,
+        `Kitne KM ke andar dukaan chahiye?`,
+        [
+          { type: 'reply', reply: { id: 'dist_2', title: '2 KM' } },
+          { type: 'reply', reply: { id: 'dist_5', title: '5 KM' } },
+          { type: 'reply', reply: { id: 'dist_10', title: '10 KM' } }
+        ]
+      );
     
-    let reply = '';
+    } else if (btn_id === 'role_sale') {
+      saveUser(from, { step: 'provider_name', role: 'provider' });
+      await sendText(from, `Apni Shop/Business ka naam bhejo`);
     
-    // Step 1: Koi bhi message pe Welcome + Role poocho
-    if (user.step === 'start') {
-      saveUserData(from, { step: 'role_select' });
-      
-      reply = `Welcome to NearMe 🙏
-
-Hum aapki kaise help kar sakte hai?
-
-1️⃣ Sale - Apni dukaan/products list karna hai
-2️⃣ Service - Technician/Mistri chahiye
-3️⃣ Customer - Najdiki dukaan/service dhundhna hai
-
-Reply me 1, 2 ya 3 bhejo`;
-    
-    // Step 2: Role select karne ke baad
-    } else if (user.step === 'role_select') {
-      
-      if (msg_body === '1') {
-        saveUserData(from, { step: 'sale_flow', role: 'seller' });
-        reply = `🛒 Sale/Dukaandar Section
-
-Aap kya bechna chahte hai?
-1. Kirana/Grocery
-2. Electronics 
-3. Kapde
-4. Medical
-5. Other
-
-Number bhejo ya type karo`;
-      
-      } else if (msg_body === '2') {
-        saveUserData(from, { step: 'service_flow', role: 'service_provider' });
-        reply = `🔧 Service Provider Section
-
-Kaun si service dete ho?
-1. Electrician
-2. Plumber 
-3. AC Repair
-4. Carpenter
-5. Other
-
-Number bhejo`;
-      
-      } else if (msg_body === '3') {
-        saveUserData(from, { step: 'customer_flow', role: 'customer' });
-        reply = `👤 Customer Section
-
-Kya chahiye aapko?
-1. Najdiki Dukaan
-2. Service/Technician
-3. Product Search
-
-Number bhejo ya 'Menu' type karo restart ke liye`;
-      
-      } else if (msg_body === 'menu' || msg_body === 'restart') {
-        saveUserData(from, { step: 'start' });
-        reply = `Dobara start karte hai 🙏
-
-1️⃣ Sale - Dukaan list karni hai
-2️⃣ Service - Technician banna hai 
-3️⃣ Customer - Kuch dhundhna hai
-
-1, 2 ya 3 bhejo`;
-      
-      } else {
-        reply = `Galat option 😅
-
-1️⃣ Sale
-2️⃣ Service 
-3️⃣ Customer
-
-Inme se 1, 2 ya 3 bhejo
-Ya 'Menu' bhejo restart ke liye`;
-      }
-    
-    // Step 3: Customer Flow
-    } else if (user.step === 'customer_flow') {
-      if (msg_body === '1') {
-        saveUserData(from, { step: 'customer_location' });
-        reply = `📍 Apna location bhejo
-
-📎 icon dabao → Location → Current Location
-
-Mai najdiki 3 dukaan bataunga`;
-      
-      } else if (msg_body === '2') {
-        reply = `Kaun sa technician chahiye?
-1. Electrician
-2. Plumber
-3. AC Repair
-
-'Menu' bhejo wapas jaane ke liye`;
-      
-      } else {
-        reply = `Customer Menu:
-1. Najdiki Dukaan
-2. Service dhundho
-
-'Menu' = Restart`;
-      }
-    
-    // Step 4: Location ka wait
-    } else if (user.step === 'customer_location' && msg.type === 'location') {
-      const lat = msg.location.latitude;
-      const lng = msg.location.longitude;
-      saveUserData(from, { step: 'customer_flow', data: {lat, lng} });
-      
-      reply = `Location mil gayi ✅
-
-Najdik ki dukaan:
-1. Sharma Store - 0.3km
-2. Gupta Medical - 0.5km 
-3. Verma Kirana - 0.8km
-
-'Menu' bhejo naye search ke liye`;
-    
-    // Sale Flow
-    } else if (user.step === 'sale_flow') {
-      saveUserData(from, { data: { business_type: msg_body }});
-      reply = `Dukaan ka naam kya hai?
-Type karke bhejo
-
-'Menu' = Restart`;
-    
-    // Service Flow 
-    } else if (user.step === 'service_flow') {
-      saveUserData(from, { data: { service_type: msg_body }});
-      reply = `Aapka naam kya hai?
-Kaam ka experience kitne saal?
-
-'Menu' = Restart`;
-    
-    } else {
-      saveUserData(from, { step: 'start' });
-      reply = `Kuch gadbad ho gayi 😅
-
-Dobara start karte hai:
-1️⃣ Sale 2️⃣ Service 3️⃣ Customer`;
+    } else if (btn_id === 'role_service') {
+      saveUser(from, { step: 'provider_name', role: 'provider' });
+      await sendText(from, `Service/Business ka naam bhejo`);
     }
+  
+  // STEP 3: CUSTOMER DISTANCE KE BAAD LOCATION
+  } else if (user.step === 'customer_dist') {
+    saveUser(from, { step: 'location', data: {...user.data, distance: btn_id} });
+    await sendText(from, `📍 Ab apna Current Location bhejo\n\n📎 dabao → Location → "Send current location"`);
+  
+  // STEP 3: PROVIDER NAME KE BAAD LOCATION 
+  } else if (user.step === 'provider_name' && msg.type === 'text') {
+    saveUser(from, { step: 'location', data: {...user.data, shop_name: msg.text.body} });
+    await sendText(from, `📍 Shop ka Location bhejo\n\n📎 dabao → Location bhejo`);
+  
+  // STEP 4: LOCATION MILNE KE BAAD CATEGORY
+  } else if (user.step === 'location' && msg.type === 'location') {
+    saveUser(from, { 
+      step: 'category', 
+      data: {...user.data, lat: msg.location.latitude, lng: msg.location.longitude }
+    });
     
-    await sendMessage(from, reply);
+    if (user.role === 'customer') {
+      await sendButtons(from,
+        `Kya chahiye?`,
+        [
+          { type: 'reply', reply: { id: 'cat_grocery', title: 'Kirana Store' } },
+          { type: 'reply', reply: { id: 'cat_medical', title: 'Medical' } },
+          { type: 'reply', reply: { id: 'cat_electronics', title: 'Electronics' } }
+        ]
+      );
+    } else {
+      await sendButtons(from,
+        `Service type kya hai?`,
+        [
+          { type: 'reply', reply: { id: 'cat_electrician', title: 'Electrician' } },
+          { type: 'reply', reply: { id: 'cat_plumber', title: 'Plumber' } },
+          { type: 'reply', reply: { id: 'cat_carpenter', title: 'Carpenter' } }
+        ]
+      );
+    }
+  
+  // STEP 5: SUB-CATEGORY
+  } else if (user.step === 'category') {
+    saveUser(from, { step: 'subcategory', data: {...user.data, category: btn_id} });
+    await sendButtons(from,
+      `Sub-Category choose karo:`,
+      [
+        { type: 'reply', reply: { id: 'sub_urgent', title: 'Urgent' } },
+        { type: 'reply', reply: { id: 'sub_normal', title: 'Normal' } },
+        { type: 'reply', reply: { id: 'sub_other', title: 'Other' } }
+      ]
+    );
+  
+  // STEP 6: OTHER INFO
+  } else if (user.step === 'subcategory') {
+    saveUser(from, { step: 'other_info', data: {...user.data, sub_cat: btn_id} });
+    await sendButtons(from,
+      `Koi extra info dena hai?`,
+      [
+        { type: 'reply', reply: { id: 'other_yes', title: 'Haan' } },
+        { type: 'reply', reply: { id: 'other_skip', title: 'Skip' } }
+      ]
+    );
+  
+  // STEP 7: WHATSAPP NUMBER
+  } else if (user.step === 'other_info') {
+    if (btn_id === 'other_yes') {
+      saveUser(from, { step: 'other_text' });
+      await sendText(from, `Extra details type karo:`);
+    } else {
+      saveUser(from, { step: 'whatsapp_num', data: {...user.data, other: 'Skip'} });
+      await sendText(from, `Contact WhatsApp Number bhejo\n\n10 digit: 8292716185`);
+    }
+  
+  } else if (user.step === 'other_text' && msg.type === 'text') {
+    saveUser(from, { step: 'whatsapp_num', data: {...user.data, other: msg.text.body} });
+    await sendText(from, `Contact WhatsApp Number bhejo\n\n10 digit: 8292716185`);
+  
+  // STEP 8: CONFIRMATION
+  } else if (user.step === 'whatsapp_num' && msg.type === 'text') {
+    saveUser(from, { step: 'done', data: {...user.data, contact: msg.text.body} });
+    await sendButtons(from,
+      `✅ Ho gaya! Data save ho gaya\n\nRole: ${user.role}\nCategory: ${user.data.category}\n\nFir se shuru karna hai?`,
+      [{ type: 'reply', reply: { id: 'restart', title: '🔄 Restart' } }]
+    );
   }
   
   res.sendStatus(200);
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`NearMe Bot running`));
+app.listen(PORT, () => console.log(`Button Bot Running`));
