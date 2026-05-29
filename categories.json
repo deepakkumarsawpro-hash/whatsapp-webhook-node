@@ -1,0 +1,60 @@
+{
+  "customer": {
+    "categories": [
+      {
+        "id": "cat_grocery",
+        "title": "Kirana Store",
+        "keywords": ["aata", "chawal", "daal", "chini", "tel"]
+      },
+      {
+        "id": "cat_medical",
+        "title": "Medical",
+        "keywords": ["dawai", "doctor", "hospital", "clinic"]
+      },
+      {
+        "id": "cat_electronics",
+        "title": "Electronics",
+        "keywords": ["mobile", "tv", "fridge", "ac", "laptop"]
+      },
+      {
+        "id": "cat_clothes",
+        "title": "Kapde",
+        "keywords": ["shirt", "jeans", "saree", "kurta"]
+      }
+    ],
+    "subcategories": [
+      { "id": "sub_urgent", "title": "Urgent Chahiye" },
+      { "id": "sub_normal", "title": "Normal" },
+      { "id": "sub_bulk", "title": "Bulk Order" }
+    ]
+  },
+  "provider": {
+    "categories": [
+      {
+        "id": "cat_electrician",
+        "title": "Electrician",
+        "keywords": ["light", "fan", "wiring", "switch", "meter"]
+      },
+      {
+        "id": "cat_plumber",
+        "title": "Plumber", 
+        "keywords": ["tap", "pipe", "leak", "motor", "tank"]
+      },
+      {
+        "id": "cat_carpenter",
+        "title": "Carpenter",
+        "keywords": ["furniture", "door", "table", "almirah", "bed"]
+      },
+      {
+        "id": "cat_ac_repair",
+        "title": "AC Repair",
+        "keywords": ["ac", "service", "gas", "cooling", "repair"]
+      }
+    ],
+    "subcategories": [
+      { "id": "sub_home", "title": "Home Visit" },
+      { "id": "sub_shop", "title": "Shop pe Aao" },
+      { "id": "sub_emergency", "title": "Emergency" }
+    ]
+  }
+}
