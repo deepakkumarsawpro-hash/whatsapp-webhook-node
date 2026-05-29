@@ -8,14 +8,17 @@ const WHATSAPP_TOKEN = process.env.WHATSAPP_TOKEN;
 const PHONE_NUMBER_ID = process.env.PHONE_NUMBER_ID;
 const VERIFY_TOKEN = process.env.VERIFY_TOKEN;
 
-// Simple DB file
 const DB_FILE = 'users.json';
 if (!fs.existsSync(DB_FILE)) fs.writeFileSync(DB_FILE, '{}');
 
-function saveToDB(user_number, msg) {
+function getUserData(number) {
   const db = JSON.parse(fs.readFileSync(DB_FILE));
-  if (!db[user_number]) db[user_number] = [];
-  db[user_number].push({ msg: msg, time: new Date().toISOString() });
+  return db[number] || { step: 'start', role: null, data: {} };
+}
+
+function saveUserData(number, data) {
+  const db = JSON.parse(fs.readFileSync(DB_FILE));
+  db[number] = {...getUserData(number),...data, lastUpdate: new Date().toISOString() };
   fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2));
 }
 
@@ -43,45 +46,149 @@ app.post('/webhook', async (req, res) => {
 
   if (msg) {
     const from = msg.from;
-    const msg_body = msg.text?.body?.toLowerCase() || '';
-    console.log('Message aaya:', from, msg_body);
-    
-    saveToDB(from, msg_body); // Sab DB me save
+    const msg_body = msg.text?.body?.toLowerCase().trim() || '';
+    const user = getUserData(from);
     
     let reply = '';
     
-    if (msg_body === 'hi' || msg_body === 'hello' || msg_body === 'menu') {
-      reply = `Namaste 🙏 Main NearMe Bot hu
+    // Step 1: Koi bhi message pe Welcome + Role poocho
+    if (user.step === 'start') {
+      saveUserData(from, { step: 'role_select' });
+      
+      reply = `Welcome to NearMe 🙏
 
-1️⃣ Najdiki Dukaan
-2️⃣ Help
-3️⃣ Contact
+Hum aapki kaise help kar sakte hai?
 
-Number bhejo: 1, 2 ya 3`;
-    
-    } else if (msg_body === '1') {
-      reply = `Dukaan List:
-1. Sharma General Store - 500m
-2. Gupta Medical - 800m
-3. Verma Kirana - 1.2km
+1️⃣ Sale - Apni dukaan/products list karna hai
+2️⃣ Service - Technician/Mistri chahiye
+3️⃣ Customer - Najdiki dukaan/service dhundhna hai
 
-Area bhejo exact location ke liye 📍`;
+Reply me 1, 2 ya 3 bhejo`;
     
-    } else if (msg_body === '2') {
-      reply = `Help:
-Hi = Menu
-1 = Dukaan list
-3 = Contact karo
-Kuch aur puchna ho to 3 dabao`;
+    // Step 2: Role select karne ke baad
+    } else if (user.step === 'role_select') {
+      
+      if (msg_body === '1') {
+        saveUserData(from, { step: 'sale_flow', role: 'seller' });
+        reply = `🛒 Sale/Dukaandar Section
+
+Aap kya bechna chahte hai?
+1. Kirana/Grocery
+2. Electronics 
+3. Kapde
+4. Medical
+5. Other
+
+Number bhejo ya type karo`;
+      
+      } else if (msg_body === '2') {
+        saveUserData(from, { step: 'service_flow', role: 'service_provider' });
+        reply = `🔧 Service Provider Section
+
+Kaun si service dete ho?
+1. Electrician
+2. Plumber 
+3. AC Repair
+4. Carpenter
+5. Other
+
+Number bhejo`;
+      
+      } else if (msg_body === '3') {
+        saveUserData(from, { step: 'customer_flow', role: 'customer' });
+        reply = `👤 Customer Section
+
+Kya chahiye aapko?
+1. Najdiki Dukaan
+2. Service/Technician
+3. Product Search
+
+Number bhejo ya 'Menu' type karo restart ke liye`;
+      
+      } else if (msg_body === 'menu' || msg_body === 'restart') {
+        saveUserData(from, { step: 'start' });
+        reply = `Dobara start karte hai 🙏
+
+1️⃣ Sale - Dukaan list karni hai
+2️⃣ Service - Technician banna hai 
+3️⃣ Customer - Kuch dhundhna hai
+
+1, 2 ya 3 bhejo`;
+      
+      } else {
+        reply = `Galat option 😅
+
+1️⃣ Sale
+2️⃣ Service 
+3️⃣ Customer
+
+Inme se 1, 2 ya 3 bhejo
+Ya 'Menu' bhejo restart ke liye`;
+      }
     
-    } else if (msg_body === '3') {
-      reply = `Contact: 8292716185
-Email: support@nearme.com
-Time: 10AM - 8PM`;
+    // Step 3: Customer Flow
+    } else if (user.step === 'customer_flow') {
+      if (msg_body === '1') {
+        saveUserData(from, { step: 'customer_location' });
+        reply = `📍 Apna location bhejo
+
+📎 icon dabao → Location → Current Location
+
+Mai najdiki 3 dukaan bataunga`;
+      
+      } else if (msg_body === '2') {
+        reply = `Kaun sa technician chahiye?
+1. Electrician
+2. Plumber
+3. AC Repair
+
+'Menu' bhejo wapas jaane ke liye`;
+      
+      } else {
+        reply = `Customer Menu:
+1. Najdiki Dukaan
+2. Service dhundho
+
+'Menu' = Restart`;
+      }
+    
+    // Step 4: Location ka wait
+    } else if (user.step === 'customer_location' && msg.type === 'location') {
+      const lat = msg.location.latitude;
+      const lng = msg.location.longitude;
+      saveUserData(from, { step: 'customer_flow', data: {lat, lng} });
+      
+      reply = `Location mil gayi ✅
+
+Najdik ki dukaan:
+1. Sharma Store - 0.3km
+2. Gupta Medical - 0.5km 
+3. Verma Kirana - 0.8km
+
+'Menu' bhejo naye search ke liye`;
+    
+    // Sale Flow
+    } else if (user.step === 'sale_flow') {
+      saveUserData(from, { data: { business_type: msg_body }});
+      reply = `Dukaan ka naam kya hai?
+Type karke bhejo
+
+'Menu' = Restart`;
+    
+    // Service Flow 
+    } else if (user.step === 'service_flow') {
+      saveUserData(from, { data: { service_type: msg_body }});
+      reply = `Aapka naam kya hai?
+Kaam ka experience kitne saal?
+
+'Menu' = Restart`;
     
     } else {
-      reply = `Samjha nahi bhai 😅
-Menu ke liye 'Hi' bhejo`;
+      saveUserData(from, { step: 'start' });
+      reply = `Kuch gadbad ho gayi 😅
+
+Dobara start karte hai:
+1️⃣ Sale 2️⃣ Service 3️⃣ Customer`;
     }
     
     await sendMessage(from, reply);
@@ -91,4 +198,4 @@ Menu ke liye 'Hi' bhejo`;
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server running on ${PORT}`));
+app.listen(PORT, () => console.log(`NearMe Bot running`));
