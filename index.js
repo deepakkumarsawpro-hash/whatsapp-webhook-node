@@ -9,7 +9,13 @@ const PHONE_NUMBER_ID = process.env.PHONE_NUMBER_ID;
 const VERIFY_TOKEN = process.env.VERIFY_TOKEN;
 
 const DB_FILE = 'users.json';
+const CONFIG_FILE = 'categories.json';
 if (!fs.existsSync(DB_FILE)) fs.writeFileSync(DB_FILE, '{}');
+
+// Config load karne ka function
+function loadConfig() {
+  return JSON.parse(fs.readFileSync(CONFIG_FILE));
+}
 
 function getUser(number) {
   const db = JSON.parse(fs.readFileSync(DB_FILE));
@@ -24,23 +30,23 @@ function saveUser(number, data) {
 
 async function sendButtons(to, bodyText, buttons) {
   await axios.post(`https://graph.facebook.com/v20.0/${PHONE_NUMBER_ID}/messages`, {
-    messaging_product: 'whatsapp',
-    to: to,
-    type: 'interactive',
-    interactive: {
-      type: 'button',
-      body: { text: bodyText },
-      action: { buttons: buttons }
-    }
+    messaging_product: 'whatsapp', to: to, type: 'interactive',
+    interactive: { type: 'button', body: { text: bodyText }, action: { buttons: buttons } }
   }, { headers: { 'Authorization': `Bearer ${WHATSAPP_TOKEN}` } });
 }
 
 async function sendText(to, text) {
   await axios.post(`https://graph.facebook.com/v20.0/${PHONE_NUMBER_ID}/messages`, {
-    messaging_product: 'whatsapp',
-    to: to,
-    text: { body: text }
+    messaging_product: 'whatsapp', to: to, text: { body: text }
   }, { headers: { 'Authorization': `Bearer ${WHATSAPP_TOKEN}` } });
+}
+
+// Photo download karne ka function
+async function downloadMedia(mediaId) {
+  const mediaUrl = await axios.get(`https://graph.facebook.com/v20.0/${mediaId}`, {
+    headers: { 'Authorization': `Bearer ${WHATSAPP_TOKEN}` }
+  });
+  return mediaUrl.data.url; // Ye URL save kar sakta hai
 }
 
 app.get('/webhook', (req, res) => {
@@ -54,8 +60,8 @@ app.post('/webhook', async (req, res) => {
 
   const from = msg.from;
   const user = getUser(from);
+  const CONFIG = loadConfig(); // Har baar fresh config load
   
-  // Button ka ID nikalo
   let btn_id = '';
   if (msg.type === 'interactive' && msg.interactive.type === 'button_reply') {
     btn_id = msg.interactive.button_reply.id;
@@ -63,7 +69,7 @@ app.post('/webhook', async (req, res) => {
     btn_id = msg.text.body.toLowerCase();
   }
 
-  // STEP 1: WELCOME - Kuch bhi bhejo button aa jayega
+  // STEP 1: WELCOME
   if (user.step === 'welcome' || btn_id === 'restart') {
     saveUser(from, { step: 'role', data: {} });
     await sendButtons(from,
@@ -75,107 +81,95 @@ app.post('/webhook', async (req, res) => {
       ]
     );
   
-  // STEP 2: ROLE KE BAAD
+  // STEP 2: ROLE
   } else if (user.step === 'role') {
     if (btn_id === 'role_customer') {
       saveUser(from, { step: 'customer_dist', role: 'customer' });
-      await sendButtons(from,
-        `Kitne KM ke andar dukaan chahiye?`,
-        [
-          { type: 'reply', reply: { id: 'dist_2', title: '2 KM' } },
-          { type: 'reply', reply: { id: 'dist_5', title: '5 KM' } },
-          { type: 'reply', reply: { id: 'dist_10', title: '10 KM' } }
-        ]
-      );
-    
-    } else if (btn_id === 'role_sale') {
+      await sendButtons(from, `Kitne KM ke andar chahiye?`, [
+        { type: 'reply', reply: { id: 'dist_2', title: '2 KM' } },
+        { type: 'reply', reply: { id: 'dist_5', title: '5 KM' } },
+        { type: 'reply', reply: { id: 'dist_10', title: '10 KM' } }
+      ]);
+    } else if (btn_id === 'role_sale' || btn_id === 'role_service') {
       saveUser(from, { step: 'provider_name', role: 'provider' });
-      await sendText(from, `Apni Shop/Business ka naam bhejo`);
-    
-    } else if (btn_id === 'role_service') {
-      saveUser(from, { step: 'provider_name', role: 'provider' });
-      await sendText(from, `Service/Business ka naam bhejo`);
+      await sendText(from, `Apni Shop/Service ka naam bhejo`);
     }
   
-  // STEP 3: CUSTOMER DISTANCE KE BAAD LOCATION
+  // STEP 3: DISTANCE / NAME
   } else if (user.step === 'customer_dist') {
     saveUser(from, { step: 'location', data: {...user.data, distance: btn_id} });
-    await sendText(from, `📍 Ab apna Current Location bhejo\n\n📎 dabao → Location → "Send current location"`);
+    await sendText(from, `📍 Ab apna Current Location bhejo\n\n📎 dabao → Location`);
   
-  // STEP 3: PROVIDER NAME KE BAAD LOCATION 
   } else if (user.step === 'provider_name' && msg.type === 'text') {
     saveUser(from, { step: 'location', data: {...user.data, shop_name: msg.text.body} });
-    await sendText(from, `📍 Shop ka Location bhejo\n\n📎 dabao → Location bhejo`);
+    await sendText(from, `📍 Shop ka Location bhejo`);
   
-  // STEP 4: LOCATION MILNE KE BAAD CATEGORY
+  // STEP 4: LOCATION → CATEGORY - Config se load
   } else if (user.step === 'location' && msg.type === 'location') {
     saveUser(from, { 
       step: 'category', 
       data: {...user.data, lat: msg.location.latitude, lng: msg.location.longitude }
     });
     
-    if (user.role === 'customer') {
-      await sendButtons(from,
-        `Kya chahiye?`,
-        [
-          { type: 'reply', reply: { id: 'cat_grocery', title: 'Kirana Store' } },
-          { type: 'reply', reply: { id: 'cat_medical', title: 'Medical' } },
-          { type: 'reply', reply: { id: 'cat_electronics', title: 'Electronics' } }
-        ]
-      );
-    } else {
-      await sendButtons(from,
-        `Service type kya hai?`,
-        [
-          { type: 'reply', reply: { id: 'cat_electrician', title: 'Electrician' } },
-          { type: 'reply', reply: { id: 'cat_plumber', title: 'Plumber' } },
-          { type: 'reply', reply: { id: 'cat_carpenter', title: 'Carpenter' } }
-        ]
-      );
-    }
+    const roleCats = CONFIG[user.role].categories.slice(0, 3); // Max 3 button
+    const catButtons = roleCats.map(cat => ({
+      type: 'reply', reply: { id: cat.id, title: cat.title }
+    }));
+    
+    await sendButtons(from, `Category choose karo:`, catButtons);
   
-  // STEP 5: SUB-CATEGORY
+  // STEP 5: SUB-CATEGORY - Config se load
   } else if (user.step === 'category') {
     saveUser(from, { step: 'subcategory', data: {...user.data, category: btn_id} });
-    await sendButtons(from,
-      `Sub-Category choose karo:`,
-      [
-        { type: 'reply', reply: { id: 'sub_urgent', title: 'Urgent' } },
-        { type: 'reply', reply: { id: 'sub_normal', title: 'Normal' } },
-        { type: 'reply', reply: { id: 'sub_other', title: 'Other' } }
-      ]
-    );
+    
+    const roleSubCats = CONFIG[user.role].subcategories.slice(0, 3);
+    const subCatButtons = roleSubCats.map(sub => ({
+      type: 'reply', reply: { id: sub.id, title: sub.title }
+    }));
+    
+    await sendButtons(from, `Sub-Category choose karo:`, subCatButtons);
   
-  // STEP 6: OTHER INFO
+  // STEP 6: OTHER INFO - Photo + Text dono
   } else if (user.step === 'subcategory') {
     saveUser(from, { step: 'other_info', data: {...user.data, sub_cat: btn_id} });
     await sendButtons(from,
-      `Koi extra info dena hai?`,
+      `Extra details dena hai?\n\nPhoto ya text bhej sakte ho`,
       [
-        { type: 'reply', reply: { id: 'other_yes', title: 'Haan' } },
+        { type: 'reply', reply: { id: 'other_photo', title: '📷 Photo Bhejo' } },
+        { type: 'reply', reply: { id: 'other_text', title: '✍️ Text Likho' } },
         { type: 'reply', reply: { id: 'other_skip', title: 'Skip' } }
       ]
     );
   
-  // STEP 7: WHATSAPP NUMBER
-  } else if (user.step === 'other_info') {
-    if (btn_id === 'other_yes') {
-      saveUser(from, { step: 'other_text' });
-      await sendText(from, `Extra details type karo:`);
-    } else {
-      saveUser(from, { step: 'whatsapp_num', data: {...user.data, other: 'Skip'} });
-      await sendText(from, `Contact WhatsApp Number bhejo\n\n10 digit: 8292716185`);
-    }
+  // STEP 6A: PHOTO WAIT
+  } else if (user.step === 'other_info' && btn_id === 'other_photo') {
+    saveUser(from, { step: 'photo_upload' });
+    await sendText(from, `📷 Photo bhejo\n\n📎 dabao → Camera/Gallery`);
   
-  } else if (user.step === 'other_text' && msg.type === 'text') {
-    saveUser(from, { step: 'whatsapp_num', data: {...user.data, other: msg.text.body} });
-    await sendText(from, `Contact WhatsApp Number bhejo\n\n10 digit: 8292716185`);
+  } else if (user.step === 'photo_upload' && msg.type === 'image') {
+    const imageId = msg.image.id;
+    const imageUrl = await downloadMedia(imageId);
+    saveUser(from, { step: 'whatsapp_num', data: {...user.data, photo_url: imageUrl} });
+    await sendText(from, `✅ Photo mil gaya!\n\nAb Contact WhatsApp Number bhejo\n10 digit: 8292716185`);
   
-  // STEP 8: CONFIRMATION
+  // STEP 6B: TEXT WAIT
+  } else if (user.step === 'other_info' && btn_id === 'other_text') {
+    saveUser(from, { step: 'other_text_wait' });
+    await sendText(from, `Extra details type karo:`);
+  
+  } else if (user.step === 'other_text_wait' && msg.type === 'text') {
+    saveUser(from, { step: 'whatsapp_num', data: {...user.data, other_text: msg.text.body} });
+    await sendText(from, `Contact WhatsApp Number bhejo\n10 digit: 8292716185`);
+  
+  } else if (user.step === 'other_info' && btn_id === 'other_skip') {
+    saveUser(from, { step: 'whatsapp_num', data: {...user.data, other: 'Skip'} });
+    await sendText(from, `Contact WhatsApp Number bhejo\n10 digit: 8292716185`);
+  
+  // STEP 8: CONFIRM
   } else if (user.step === 'whatsapp_num' && msg.type === 'text') {
     saveUser(from, { step: 'done', data: {...user.data, contact: msg.text.body} });
     await sendButtons(from,
-      `✅ Ho gaya! Data save ho gaya\n\nRole: ${user.role}\nCategory: ${user.data.category}\n\nFir se shuru karna hai?`,
+      `✅ Success! Data save ho gaya\n\nRole: ${user.role}\nPhoto: ${user.data.photo_url? 'Haan' : 'Nahi'}`,
       [{ type: 'reply', reply: { id: 'restart', title: '🔄 Restart' } }]
     );
   }
@@ -184,4 +178,4 @@ app.post('/webhook', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Button Bot Running`));
+app.listen(PORT, () => console.log(`NearMe Bot Running`));
