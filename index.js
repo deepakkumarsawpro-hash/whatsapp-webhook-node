@@ -119,38 +119,33 @@ app.post('/webhook', async (req, res) => {
 
     // STEP 3: DISTANCE OR SHOP NAME
     } else if (user.step === 'customer_dist') {
-      saveUser(from, { step: 'location_ask', data: {...user.data, distance: reply_id} });
-      await sendButtons(from, `Location kaise dena chahte ho?\n\nNote: Location sirf Mobile App se bhej sakte ho`, [
-        { type: 'reply', reply: { id: 'loc_gps', title: '📍 GPS Location' } },
-        { type: 'reply', reply: { id: 'loc_pincode', title: '✍️ Pincode Type' } }
-      ]);
+      saveUser(from, { step: 'location_wait', data: {...user.data, distance: reply_id} });
+      await sendText(from, `📍 Ab apna Exact Location bhejo\n\n📎 dabao → Location → Send Current Location\n\nNote: Mobile WhatsApp App se hi kaam karega`);
 
     } else if (user.step === 'provider_name' && msg.type === 'text') {
-      saveUser(from, { step: 'location_ask', data: {...user.data, shop_name: msg.text.body} });
-      await sendButtons(from, `Shop ka Location kaise dena chahte ho?`, [
-        { type: 'reply', reply: { id: 'loc_gps', title: '📍 GPS Location' } },
-        { type: 'reply', reply: { id: 'loc_pincode', title: '✍️ Pincode Type' } }
+      saveUser(from, { step: 'location_wait', data: {...user.data, shop_name: msg.text.body} });
+      await sendText(from, `📍 Shop ka Exact Location bhejo\n\n📎 dabao → Location → Send Current Location`);
+
+    // STEP 4: LOCATION RECEIVED - MAIN CATEGORY LIST
+    } else if (user.step === 'location_wait' && msg.type === 'location') {
+      saveUser(from, {
+        step: 'main_category',
+        data: {...user.data, lat: msg.location.latitude, lng: msg.location.longitude }
+      });
+
+      const roleData = CATEGORIES[user.role];
+      const listRows = roleData.main_categories.map(cat => ({
+        id: cat.id,
+        title: cat.title.substring(0, 24),
+        description: (cat.description || '').substring(0, 72)
+      }));
+
+      await sendList(from, `✅ Location mil gaya!\n\nAb Category choose karo:`, `Categories`, [
+        { title: 'Main Categories', rows: listRows }
       ]);
 
-    // STEP 4: LOCATION YA PINCODE
-    } else if (user.step === 'location_ask' && reply_id === 'loc_gps') {
-      saveUser(from, { step: 'location_wait' });
-      await sendText(from, `📍 Ab GPS Location bhejo\n\n📎 dabao → Location → Send Current Location\n\nSirf Mobile App se kaam karega`);
-
-    } else if (user.step === 'location_ask' && reply_id === 'loc_pincode') {
-      saveUser(from, { step: 'pincode_wait' });
-      await sendText(from, `Apna 6 digit Pincode type karo:`);
-
-    } else if (user.step === 'location_wait' && msg.type === 'location') {
-      await sendMainCategoryList(from, user, msg.location.latitude, msg.location.longitude);
-
-    } else if (user.step === 'pincode_wait' && msg.type === 'text') {
-      const pincode = msg.text.body.trim();
-      if (/^\d{6}$/.test(pincode)) {
-        await sendMainCategoryList(from, user, null, null, pincode);
-      } else {
-        await sendText(from, `Galat Pincode. 6 digit number bhejo jaise 123456`);
-      }
+    } else if (user.step === 'location_wait' && msg.type!== 'location') {
+      await sendText(from, `❌ Location nahi mila!\n\n📍 Sirf GPS Location bhejo\n📎 → Location → Send Current Location\n\nText ya Pincode mat bhejo`);
 
     // STEP 5: SUB CATEGORY
     } else if (user.step === 'main_category') {
@@ -171,16 +166,26 @@ app.post('/webhook', async (req, res) => {
         ]);
       }
 
-    // STEP 6: DONE
+    // STEP 6: SUB CATEGORY SELECTED - AB WHATSAPP NUMBER MANGO
     } else if (user.step === 'sub_category') {
       const mainCat = CATEGORIES[user.role].main_categories.find(c => c.id === user.data.main_cat);
       const subCat = mainCat.sub_categories.find(s => s.id === reply_id);
 
-      saveUser(from, { step: 'done', data: {...user.data, sub_cat: reply_id, sub_cat_title: subCat.title} });
-      await sendButtons(from,
-        `✅ Done!\n\nCategory: ${user.data.main_cat_title}\nSub: ${subCat.title}\nLocation: ${user.data.pincode || 'GPS'}\n\nFir se shuru kare?`,
-        [{ type: 'reply', reply: { id: 'restart', title: '🔄 Restart' } }]
-      );
+      saveUser(from, { step: 'whatsapp_num', data: {...user.data, sub_cat: reply_id, sub_cat_title: subCat.title} });
+      await sendText(from, `📱 Contact ke liye WhatsApp Number bhejo\n\nExample: 9876543210`);
+
+    // STEP 7: WHATSAPP NUMBER RECEIVED - DONE
+    } else if (user.step === 'whatsapp_num' && msg.type === 'text') {
+      const contact = msg.text.body.trim();
+      if (/^\d{10}$/.test(contact)) {
+        saveUser(from, { step: 'done', data: {...user.data, contact: contact} });
+        await sendButtons(from,
+          `✅ Done!\n\nCategory: ${user.data.main_cat_title}\nSub: ${user.data.sub_cat_title}\nContact: ${contact}\nLocation: GPS Saved\n\nFir se shuru kare?`,
+          [{ type: 'reply', reply: { id: 'restart', title: '🔄 Restart' } }]
+        );
+      } else {
+        await sendText(from, `❌ Galat number!\n\n10 digit WhatsApp number bhejo\nExample: 9876543210`);
+      }
     }
 
   } catch (err) {
@@ -190,24 +195,6 @@ app.post('/webhook', async (req, res) => {
 
   res.sendStatus(200);
 });
-
-async function sendMainCategoryList(from, user, lat, lng, pincode = null) {
-  saveUser(from, {
-    step: 'main_category',
-    data: {...user.data, lat: lat, lng: lng, pincode: pincode }
-  });
-
-  const roleData = CATEGORIES[user.role];
-  const listRows = roleData.main_categories.map(cat => ({
-    id: cat.id,
-    title: cat.title.substring(0, 24),
-    description: (cat.description || '').substring(0, 72)
-  }));
-
-  await sendList(from, `✅ Location save ho gaya!\n\nAb Category choose karo:`, `Categories`, [
-    { title: 'Main Categories', rows: listRows }
-  ]);
-}
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`NearMe Bot Running`));
