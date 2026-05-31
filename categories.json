@@ -1,5 +1,258 @@
-// Galat ❌
-{ "id": "sub1", "title": "ABC", }, 
-
-// Sahi ✅  
-{ "id": "sub1", "title": "ABC" }
+{
+  "customer": {
+    "main_categories": [
+      {
+        "id": "cat_construction",
+        "title": "Construction & Home Improvement",
+        "description": "Mason, Plumber, Electrician, Carpenter",
+        "sub_categories": [
+          {
+            "id": "sub_mason",
+            "title": "Mason - मिस्त्री",
+            "keywords": ["mason", "raj mistri", "construction", "दीवार", "building", "brickwork"]
+          },
+          {
+            "id": "sub_plumber",
+            "title": "Plumber",
+            "keywords": ["pipe fitting", "water tank", "tap repair", "प्लंबर", "leakage", "motor", "bathroom"]
+          },
+          {
+            "id": "sub_electrician",
+            "title": "Electrician",
+            "keywords": ["wiring", "inverter repair", "switchboard", "इलेक्ट्रीशियन", "light", "fan", "meter"]
+          },
+          {
+            "id": "sub_carpenter",
+            "title": "Carpenter",
+            "keywords": ["furniture", "door fitting", "wood work", "बढ़ई", "almirah", "bed", "table"]
+          },
+          {
+            "id": "sub_paint",
+            "title": "Paint & Hardware",
+            "keywords": ["wall paint", "putty", "cement", "paint shop", "पेंट", "हार्डवेयर", "primer"]
+          }
+        ]
+      },
+      {
+        "id": "cat_automotive",
+        "title": "Automotive & Logistics",
+        "description": "Mechanic, Transport, Courier",
+        "sub_categories": [
+          {
+            "id": "sub_mechanic",
+            "title": "Mechanic",
+            "keywords": ["bike repair", "car service", "engine work", "मैकेनिक", "garage", "puncture"]
+          },
+          {
+            "id": "sub_spare",
+            "title": "Spare Parts",
+            "keywords": ["tires", "lubricants", "engine oil", "स्पेयर पार्ट्स", "battery", "parts"]
+          },
+          {
+            "id": "sub_transport",
+            "title": "Transport",
+            "keywords": ["pickup", "truck rental", "tractor", "टैक्सी", "tempo", "goods", "loading"]
+          },
+          {
+            "id": "sub_courier",
+            "title": "Courier",
+            "keywords": ["parcel service", "delivery", "लॉजिस्टिक्स", "courier", "shipment", "parcel"]
+          }
+        ]
+      },
+      {
+        "id": "cat_food",
+        "title": "Food & Hospitality",
+        "description": "Restaurant, Catering, Bakery",
+        "sub_categories": [
+          {
+            "id": "sub_restaurant",
+            "title": "Restaurant/Dhaba",
+            "keywords": ["food", "breakfast", "lunch", "dinner", "होटल", "ढाबा", "restaurant", "veg", "nonveg"]
+          },
+          {
+            "id": "sub_catering",
+            "title": "Catering/Events",
+            "keywords": ["tent house", "decoration", "party order", "कैटरिंग", "marriage", "event", "birthday"]
+          },
+          {
+            "id": "sub_bakery",
+            "title": "Bakery/Dairy",
+            "keywords": ["cake", "milk", "sweets", "मिठाई", "बेकरी", "dairy", "paneer", "ghee"]
+          }
+        ]
+      },
+      {
+        "id": "cat_retail",
+        "title": "Retail & Daily Needs",
+        "description": "Kirana, Electronics, Fashion",
+        "sub_categories": [
+          {
+            "id": "sub_kirana",
+            "title": "Grocery/Kirana",
+            "keywords": ["rice", "oil", "general store", "किराना", "राशन", "aata", "daal", "sugar"]
+          },
+          {
+            "id": "sub_electronics",
+            "title": "Electronics",
+            "keywords": ["mobile shop", "fridge", "ac repair", "इलेक्ट्रॉनिक्स", "tv", "laptop", "washing machine"]
+          },
+          {
+            "id": "sub_fashion",
+            "title": "Fashion/Tailor",
+            "keywords": ["clothes", "stitching", "tailoring", "कपड़े", "दर्जी", "suit", "saree", "shirt"]
+          },
+          {
+            "id": "sub_stationery",
+            "title": "Stationery/Printing",
+            "keywords": ["photostat", "book store", "printout", "फोटोकॉपी", "xerox", "printing", "notebook"]
+          }
+        ]
+      },
+      {
+        "id": "cat_healthcare",
+        "title": "Healthcare & Education",
+        "description": "Doctor, Pharmacy, Coaching",
+        "sub_categories": [
+          {
+            "id": "sub_clinic",
+            "title": "Clinic/Doctor",
+            "keywords": ["medical", "health", "consultant", "डॉक्टर", "क्लिनिक", "hospital", "checkup"]
+          },
+          {
+            "id": "sub_pharmacy",
+            "title": "Pharmacy",
+            "keywords": ["medicines", "medical store", "दवा दुकान", "chemist", "dawai", "tablet"]
+          },
+          {
+            "id": "sub_coaching",
+            "title": "Coaching/Tutor",
+            "keywords": ["tuition", "coaching center", "home tutor", "ट्यूशन", "कोचिंग", "teacher", "class"]
+          }
+        ]
+      },
+      {
+        "id": "cat_personal",
+        "title": "Personal & Professional Services",
+        "description": "Salon, Cleaning, Legal",
+        "sub_categories": [
+          {
+            "id": "sub_salon",
+            "title": "Salon/Beauty",
+            "keywords": ["haircut", "beauty parlor", "grooming", "सैलून", "ब्यूटी पार्लर", "facial", "makeup"]
+          },
+          {
+            "id": "sub_cleaning",
+            "title": "Cleaning",
+            "keywords": ["sofa cleaning", "housekeeping", "सेप्टिक टैंक सफाई", "home clean", "pest control"]
+          },
+          {
+            "id": "sub_financial",
+            "title": "Financial/Legal",
+            "keywords": ["ca", "lawyer", "insurance", "वकील", "फाइनेंस", "loan", "gst", "accountant"]
+          },
+          {
+            "id": "sub_realestate",
+            "title": "Real Estate",
+            "keywords": ["property dealer", "land", "rent", "रियल एस्टेट", "plot", "house", "flat"]
+          }
+        ]
+      },
+      {
+        "id": "cat_agriculture",
+        "title": "Agriculture & Farming",
+        "description": "Seeds, Equipment, Tractor",
+        "sub_categories": [
+          {
+            "id": "sub_agri_inputs",
+            "title": "Agri-Inputs",
+            "keywords": ["seeds", "fertilizer", "pesticides", "बीज", "खाद", "urea", "dawai", "khaad"]
+          },
+          {
+            "id": "sub_agri_equip",
+            "title": "Agri-Equipment",
+            "keywords": ["tractor repair", "harvester", "कृषि उपकरण", "thresher", "pump", "plough"]
+          }
+        ]
+      }
+    ]
+  },
+  "provider": {
+    "main_categories": [
+      {
+        "id": "cat_construction",
+        "title": "Construction & Home Improvement",
+        "description": "Service provider bane",
+        "sub_categories": [
+          { "id": "sub_mason", "title": "Mason - मिस्त्री" },
+          { "id": "sub_plumber", "title": "Plumber" },
+          { "id": "sub_electrician", "title": "Electrician" },
+          { "id": "sub_carpenter", "title": "Carpenter" },
+          { "id": "sub_paint", "title": "Paint & Hardware" }
+        ]
+      },
+      {
+        "id": "cat_automotive",
+        "title": "Automotive & Logistics",
+        "description": "Mechanic, Transport service",
+        "sub_categories": [
+          { "id": "sub_mechanic", "title": "Mechanic" },
+          { "id": "sub_spare", "title": "Spare Parts Shop" },
+          { "id": "sub_transport", "title": "Transport Service" },
+          { "id": "sub_courier", "title": "Courier Service" }
+        ]
+      },
+      {
+        "id": "cat_food",
+        "title": "Food & Hospitality",
+        "description": "Restaurant, Catering list kare",
+        "sub_categories": [
+          { "id": "sub_restaurant", "title": "Restaurant/Dhaba" },
+          { "id": "sub_catering", "title": "Catering/Events" },
+          { "id": "sub_bakery", "title": "Bakery/Dairy" }
+        ]
+      },
+      {
+        "id": "cat_retail",
+        "title": "Retail & Daily Needs",
+        "description": "Shop list kare",
+        "sub_categories": [
+          { "id": "sub_kirana", "title": "Grocery/Kirana" },
+          { "id": "sub_electronics", "title": "Electronics Shop" },
+          { "id": "sub_fashion", "title": "Fashion/Tailor" },
+          { "id": "sub_stationery", "title": "Stationery/Printing" }
+        ]
+      },
+      {
+        "id": "cat_healthcare",
+        "title": "Healthcare & Education",
+        "description": "Doctor, Coaching list",
+        "sub_categories": [
+          { "id": "sub_clinic", "title": "Clinic/Doctor" },
+          { "id": "sub_pharmacy", "title": "Pharmacy" },
+          { "id": "sub_coaching", "title": "Coaching/Tutor" }
+        ]
+      },
+      {
+        "id": "cat_personal",
+        "title": "Personal & Professional Services",
+        "description": "Service provide kare",
+        "sub_categories": [
+          { "id": "sub_salon", "title": "Salon/Beauty" },
+          { "id": "sub_cleaning", "title": "Cleaning Service" },
+          { "id": "sub_financial", "title": "Financial/Legal" },
+          { "id": "sub_realestate", "title": "Real Estate" }
+        ]
+      },
+      {
+        "id": "cat_agriculture",
+        "title": "Agriculture & Farming",
+        "description": "Agri service/shop",
+        "sub_categories": [
+          { "id": "sub_agri_inputs", "title": "Agri-Inputs Shop" },
+          { "id": "sub_agri_equip", "title": "Agri-Equipment" }
+        ]
+      }
+    ]
+  }
+}
