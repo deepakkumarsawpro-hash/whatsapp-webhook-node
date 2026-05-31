@@ -14,80 +14,13 @@ if (!fs.existsSync(DB_FILE)) fs.writeFileSync(DB_FILE, '{}');
 const CATEGORIES = {
   "customer": {
     "main_categories": [
-      {
-        "id": "cat_construction",
-        "title": "Construction & Home Improvement",
-        "description": "Mason, Plumber, Electrician, Carpenter",
-        "sub_categories": [
-          { "id": "sub_mason", "title": "Mason - मिस्त्री", "keywords": ["mason", "raj mistri", "construction", "दीवार"] },
-          { "id": "sub_plumber", "title": "Plumber", "keywords": ["pipe fitting", "water tank", "tap repair", "प्लंबर"] },
-          { "id": "sub_electrician", "title": "Electrician", "keywords": ["wiring", "inverter repair", "switchboard", "इलेक्ट्रीशियन"] },
-          { "id": "sub_carpenter", "title": "Carpenter", "keywords": ["furniture", "door fitting", "wood work", "बढ़ई"] },
-          { "id": "sub_paint", "title": "Paint & Hardware", "keywords": ["wall paint", "putty", "cement", "paint shop", "पेंट"] }
-        ]
-      },
-      {
-        "id": "cat_automotive",
-        "title": "Automotive & Logistics",
-        "description": "Mechanic, Transport, Courier",
-        "sub_categories": [
-          { "id": "sub_mechanic", "title": "Mechanic", "keywords": ["bike repair", "car service", "engine work", "मैकेनिक"] },
-          { "id": "sub_spare", "title": "Spare Parts", "keywords": ["tires", "lubricants", "engine oil", "स्पेयर पार्ट्स"] },
-          { "id": "sub_transport", "title": "Transport", "keywords": ["pickup", "truck rental", "tractor", "टैक्सी", "tempo"] },
-          { "id": "sub_courier", "title": "Courier", "keywords": ["parcel service", "delivery", "लॉजिस्टिक्स", "courier"] }
-        ]
-      },
-      {
-        "id": "cat_food",
-        "title": "Food & Hospitality",
-        "description": "Restaurant, Catering, Bakery",
-        "sub_categories": [
-          { "id": "sub_restaurant", "title": "Restaurant/Dhaba", "keywords": ["food", "breakfast", "lunch", "dinner", "होटल", "ढाबा"] },
-          { "id": "sub_catering", "title": "Catering/Events", "keywords": ["tent house", "decoration", "party order", "कैटरिंग"] },
-          { "id": "sub_bakery", "title": "Bakery/Dairy", "keywords": ["cake", "milk", "sweets", "मिठाई", "बेकरी", "dairy"] }
-        ]
-      },
-      {
-        "id": "cat_retail",
-        "title": "Retail & Daily Needs",
-        "description": "Kirana, Electronics, Fashion",
-        "sub_categories": [
-          { "id": "sub_kirana", "title": "Grocery/Kirana", "keywords": ["rice", "oil", "general store", "किराना", "राशन"] },
-          { "id": "sub_electronics", "title": "Electronics", "keywords": ["mobile shop", "fridge", "ac repair", "इलेक्ट्रॉनिक्स"] },
-          { "id": "sub_fashion", "title": "Fashion/Tailor", "keywords": ["clothes", "stitching", "tailoring", "कपड़े", "दर्जी"] },
-          { "id": "sub_stationery", "title": "Stationery/Printing", "keywords": ["photostat", "book store", "printout", "फोटोकॉपी"] }
-        ]
-      },
-      {
-        "id": "cat_healthcare",
-        "title": "Healthcare & Education",
-        "description": "Doctor, Pharmacy, Coaching",
-        "sub_categories": [
-          { "id": "sub_clinic", "title": "Clinic/Doctor", "keywords": ["medical", "health", "consultant", "डॉक्टर", "क्लिनिक"] },
-          { "id": "sub_pharmacy", "title": "Pharmacy", "keywords": ["medicines", "medical store", "दवा दुकान", "chemist"] },
-          { "id": "sub_coaching", "title": "Coaching/Tutor", "keywords": ["tuition", "coaching center", "home tutor", "ट्यूशन"] }
-        ]
-      },
-      {
-        "id": "cat_personal",
-        "title": "Personal & Professional Services",
-        "description": "Salon, Cleaning, Legal",
-        "sub_categories": [
-          { "id": "sub_salon", "title": "Salon/Beauty", "keywords": ["haircut", "beauty parlor", "grooming", "सैलून"] },
-          { "id": "sub_cleaning", "title": "Cleaning", "keywords": ["sofa cleaning", "housekeeping", "सेप्टिक टैंक सफाई"] },
-          { "id": "sub_financial", "title": "Financial/Legal", "keywords": ["ca", "lawyer", "insurance", "वकील", "फाइनेंस"] },
-          { "id": "sub_realestate", "title": "Real Estate", "keywords": ["property dealer", "land", "rent", "रियल एस्टेट"] }
-        ]
-      },
-      {
-        "id": "cat_agriculture",
-        "title": "Agriculture & Farming",
-        "description": "Seeds, Equipment, Tractor",
-        "sub_categories": [
-          { "id": "sub_agri_inputs", "title": "Agri-Inputs", "keywords": ["seeds", "fertilizer", "pesticides", "बीज", "खाद"] },
-          { "id": "sub_agri_equip", "title": "Agri-Equipment", "keywords": ["tractor repair", "harvester", "कृषि उपकरण"] }
-        ]
-      }
+      { "id": "cat_construction", "title": "Construction & Home Improvement", "description": "Mason, Plumber, Electrician", "sub_categories": [{ "id": "sub_mason", "title": "Mason - मिस्त्री" }, { "id": "sub_plumber", "title": "Plumber" }, { "id": "sub_electrician", "title": "Electrician" }, { "id": "sub_carpenter", "title": "Carpenter" }, { "id": "sub_paint", "title": "Paint & Hardware" }] },
+      { "id": "cat_automotive", "title": "Automotive & Logistics", "description": "Mechanic, Transport, Courier", "sub_categories": [{ "id": "sub_mechanic", "title": "Mechanic" }, { "id": "sub_spare", "title": "Spare Parts" }, { "id": "sub_transport", "title": "Transport" }, { "id": "sub_courier", "title": "Courier" }] },
+      { "id": "cat_food", "title": "Food & Hospitality", "description": "Restaurant, Catering, Bakery", "sub_categories": [{ "id": "sub_restaurant", "title": "Restaurant/Dhaba" }, { "id": "sub_catering", "title": "Catering/Events" }, { "id": "sub_bakery", "title": "Bakery/Dairy" }] },
+      { "id": "cat_retail", "title": "Retail & Daily Needs", "description": "Kirana, Electronics, Fashion", "sub_categories": [{ "id": "sub_kirana", "title": "Grocery/Kirana" }, { "id": "sub_electronics", "title": "Electronics" }, { "id": "sub_fashion", "title": "Fashion/Tailor" }, { "id": "sub_stationery", "title": "Stationery/Printing" }] },
+      { "id": "cat_healthcare", "title": "Healthcare & Education", "description": "Doctor, Pharmacy, Coaching", "sub_categories": [{ "id": "sub_clinic", "title": "Clinic/Doctor" }, { "id": "sub_pharmacy", "title": "Pharmacy" }, { "id": "sub_coaching", "title": "Coaching/Tutor" }] },
+      { "id": "cat_personal", "title": "Personal & Professional Services", "description": "Salon, Cleaning, Legal", "sub_categories": [{ "id": "sub_salon", "title": "Salon/Beauty" }, { "id": "sub_cleaning", "title": "Cleaning" }, { "id": "sub_financial", "title": "Financial/Legal" }, { "id": "sub_realestate", "title": "Real Estate" }] },
+      { "id": "cat_agriculture", "title": "Agriculture & Farming", "description": "Seeds, Equipment, Tractor", "sub_categories": [{ "id": "sub_agri_inputs", "title": "Agri-Inputs" }, { "id": "sub_agri_equip", "title": "Agri-Equipment" }] }
     ]
   },
   "provider": {
@@ -152,14 +85,12 @@ app.post('/webhook', async (req, res) => {
   const from = msg.from;
   const user = getUser(from);
 
-  console.log('User:', from, 'Step:', user.step, 'MsgType:', msg.type); // DEBUG LOG
-
   let reply_id = '';
   if (msg.type === 'interactive') {
     if (msg.interactive.type === 'button_reply') reply_id = msg.interactive.button_reply.id;
     if (msg.interactive.type === 'list_reply') reply_id = msg.interactive.list_reply.id;
   } else if (msg.type === 'text') {
-    reply_id = msg.text.body.toLowerCase();
+    reply_id = msg.text.body.toLowerCase().trim();
   }
 
   try {
@@ -188,32 +119,38 @@ app.post('/webhook', async (req, res) => {
 
     // STEP 3: DISTANCE OR SHOP NAME
     } else if (user.step === 'customer_dist') {
-      saveUser(from, { step: 'location', data: {...user.data, distance: reply_id} });
-      await sendText(from, `📍 Ab apna Current Location bhejo\n\n📎 button dabao → Location → Send Current Location`);
+      saveUser(from, { step: 'location_ask', data: {...user.data, distance: reply_id} });
+      await sendButtons(from, `Location kaise dena chahte ho?\n\nNote: Location sirf Mobile App se bhej sakte ho`, [
+        { type: 'reply', reply: { id: 'loc_gps', title: '📍 GPS Location' } },
+        { type: 'reply', reply: { id: 'loc_pincode', title: '✍️ Pincode Type' } }
+      ]);
 
     } else if (user.step === 'provider_name' && msg.type === 'text') {
-      saveUser(from, { step: 'location', data: {...user.data, shop_name: msg.text.body} });
-      await sendText(from, `📍 Shop ka Location bhejo\n\n📎 button dabao → Location`);
-
-    // STEP 4: LOCATION RECEIVED - MAIN CATEGORY LIST
-    } else if (user.step === 'location' && msg.type === 'location') {
-      console.log('Location received:', msg.location.latitude, msg.location.longitude); // DEBUG
-
-      saveUser(from, {
-        step: 'main_category',
-        data: {...user.data, lat: msg.location.latitude, lng: msg.location.longitude }
-      });
-
-      const roleData = CATEGORIES[user.role];
-      const listRows = roleData.main_categories.map(cat => ({
-        id: cat.id,
-        title: cat.title.substring(0, 24),
-        description: (cat.description || '').substring(0, 72)
-      }));
-
-      await sendList(from, `✅ Location mil gaya!\n\nCategory choose karo:`, `Categories`, [
-        { title: 'Main Categories', rows: listRows }
+      saveUser(from, { step: 'location_ask', data: {...user.data, shop_name: msg.text.body} });
+      await sendButtons(from, `Shop ka Location kaise dena chahte ho?`, [
+        { type: 'reply', reply: { id: 'loc_gps', title: '📍 GPS Location' } },
+        { type: 'reply', reply: { id: 'loc_pincode', title: '✍️ Pincode Type' } }
       ]);
+
+    // STEP 4: LOCATION YA PINCODE
+    } else if (user.step === 'location_ask' && reply_id === 'loc_gps') {
+      saveUser(from, { step: 'location_wait' });
+      await sendText(from, `📍 Ab GPS Location bhejo\n\n📎 dabao → Location → Send Current Location\n\nSirf Mobile App se kaam karega`);
+
+    } else if (user.step === 'location_ask' && reply_id === 'loc_pincode') {
+      saveUser(from, { step: 'pincode_wait' });
+      await sendText(from, `Apna 6 digit Pincode type karo:`);
+
+    } else if (user.step === 'location_wait' && msg.type === 'location') {
+      await sendMainCategoryList(from, user, msg.location.latitude, msg.location.longitude);
+
+    } else if (user.step === 'pincode_wait' && msg.type === 'text') {
+      const pincode = msg.text.body.trim();
+      if (/^\d{6}$/.test(pincode)) {
+        await sendMainCategoryList(from, user, null, null, pincode);
+      } else {
+        await sendText(from, `Galat Pincode. 6 digit number bhejo jaise 123456`);
+      }
 
     // STEP 5: SUB CATEGORY
     } else if (user.step === 'main_category') {
@@ -226,35 +163,24 @@ app.post('/webhook', async (req, res) => {
         const subRows = selectedCat.sub_categories.map(sub => ({
           id: sub.id,
           title: sub.title.substring(0, 24),
-          description: sub.keywords? sub.keywords.slice(0,2).join(', ').substring(0, 72) : ''
+          description: ''
         }));
 
         await sendList(from, `${selectedCat.title} me kya chahiye?`, `Sub-Category`, [
           { title: 'Sub Categories', rows: subRows }
         ]);
-      } else {
-        await sendText(from, `Category nahi mili. Restart karo.`);
       }
 
-    // STEP 6: SUB CATEGORY SELECTED
+    // STEP 6: DONE
     } else if (user.step === 'sub_category') {
       const mainCat = CATEGORIES[user.role].main_categories.find(c => c.id === user.data.main_cat);
       const subCat = mainCat.sub_categories.find(s => s.id === reply_id);
 
-      saveUser(from, { step: 'whatsapp_num', data: {...user.data, sub_cat: reply_id, sub_cat_title: subCat.title} });
-      await sendText(from, `Contact WhatsApp Number bhejo`);
-
-    // STEP 7: DONE
-    } else if (user.step === 'whatsapp_num' && msg.type === 'text') {
-      saveUser(from, { step: 'done', data: {...user.data, contact: msg.text.body} });
+      saveUser(from, { step: 'done', data: {...user.data, sub_cat: reply_id, sub_cat_title: subCat.title} });
       await sendButtons(from,
-        `✅ Done!\n\nCategory: ${user.data.main_cat_title}\nSub: ${user.data.sub_cat_title}\nContact: ${msg.text.body}\n\nFir se shuru kare?`,
+        `✅ Done!\n\nCategory: ${user.data.main_cat_title}\nSub: ${subCat.title}\nLocation: ${user.data.pincode || 'GPS'}\n\nFir se shuru kare?`,
         [{ type: 'reply', reply: { id: 'restart', title: '🔄 Restart' } }]
       );
-
-    // LOCATION MANGA BUT KUCH AUR BHEJA
-    } else if (user.step === 'location' && msg.type!== 'location') {
-      await sendText(from, `📍 Location bhejo bhai!\n\n📎 dabao → Location → Send Current Location\n\nText mat bhejo, location bhejo.`);
     }
 
   } catch (err) {
@@ -264,6 +190,24 @@ app.post('/webhook', async (req, res) => {
 
   res.sendStatus(200);
 });
+
+async function sendMainCategoryList(from, user, lat, lng, pincode = null) {
+  saveUser(from, {
+    step: 'main_category',
+    data: {...user.data, lat: lat, lng: lng, pincode: pincode }
+  });
+
+  const roleData = CATEGORIES[user.role];
+  const listRows = roleData.main_categories.map(cat => ({
+    id: cat.id,
+    title: cat.title.substring(0, 24),
+    description: (cat.description || '').substring(0, 72)
+  }));
+
+  await sendList(from, `✅ Location save ho gaya!\n\nAb Category choose karo:`, `Categories`, [
+    { title: 'Main Categories', rows: listRows }
+  ]);
+}
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`NearMe Bot Running`));
