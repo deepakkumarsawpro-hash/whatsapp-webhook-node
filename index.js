@@ -12,7 +12,6 @@ const USERS_FILE = 'users.json';
 const PROVIDERS_FILE = 'providers.json';
 const REQUESTS_FILE = 'requests.json';
 
-// Files create karo agar nahi hai
 if (!fs.existsSync(USERS_FILE)) fs.writeFileSync(USERS_FILE, '{}');
 if (!fs.existsSync(PROVIDERS_FILE)) fs.writeFileSync(PROVIDERS_FILE, '[]');
 if (!fs.existsSync(REQUESTS_FILE)) fs.writeFileSync(REQUESTS_FILE, '[]');
@@ -42,7 +41,6 @@ const CATEGORIES = {
   }
 };
 
-// ===== HELPER FUNCTIONS =====
 function getUser(number) {
   const db = JSON.parse(fs.readFileSync(USERS_FILE));
   return db[number] || { step: 'welcome', data: {} };
@@ -56,7 +54,6 @@ function saveUser(number, data) {
 
 function saveProvider(providerData) {
   const providers = JSON.parse(fs.readFileSync(PROVIDERS_FILE));
-  // Agar pehle se hai to update karo
   const idx = providers.findIndex(p => p.whatsapp === providerData.whatsapp);
   if (idx >= 0) providers[idx] = providerData;
   else providers.push(providerData);
@@ -70,14 +67,24 @@ function getProviders(mainCat, subCat) {
 
 function saveRequest(requestData) {
   const requests = JSON.parse(fs.readFileSync(REQUESTS_FILE));
-  requests.push({...requestData, id: Date.now(), status: 'open'});
+  const newReq = {...requestData, id: Date.now(), status: 'open'};
+  requests.push(newReq);
   fs.writeFileSync(REQUESTS_FILE, JSON.stringify(requests, null, 2));
-  return requests[requests.length - 1].id;
+  return newReq.id;
 }
 
 function getRequest(id) {
   const requests = JSON.parse(fs.readFileSync(REQUESTS_FILE));
   return requests.find(r => r.id === id);
+}
+
+function getDistance(lat1, lon1, lat2, lon2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
 }
 
 async function sendButtons(to, bodyText, buttons) {
@@ -106,16 +113,6 @@ async function sendText(to, text) {
   } catch (e) { console.error('Text Error:', e.response?.data || e.message); }
 }
 
-// ===== DISTANCE CALCULATION =====
-function getDistance(lat1, lon1, lat2, lon2) {
-  const R = 6371; // KM
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-  return R * c;
-}
-
 app.get('/webhook', (req, res) => {
   if (req.query['hub.verify_token'] === VERIFY_TOKEN) res.send(req.query['hub.challenge']);
   else res.sendStatus(403);
@@ -139,14 +136,13 @@ app.post('/webhook', async (req, res) => {
   try {
     // PROVIDER REPLY TO CUSTOMER REQUEST
     if (reply_id.startsWith('interested_')) {
-      const requestId = reply_id.split('_')[1];
-      const request = getRequest(parseInt(requestId));
-      if (request) {
-        // Customer ko provider ka contact bhejo
+      const requestId = parseInt(reply_id.split('_')[1]);
+      const request = getRequest(requestId);
+      if (request && user.data.shop_name) {
         await sendText(request.customer_whatsapp,
-          `✅ Ek ${user.data.sub_cat_title} available hai!\n\nName: ${user.data.shop_name}\nContact: ${user.data.contact}\n\nAap direct baat kar sakte hai.`
+          `✅ Ek ${request.sub_cat_title} available hai!\n\nShop: ${user.data.shop_name}\nContact: ${user.data.contact}\nDistance: ${getDistance(request.lat, request.lng, user.data.lat, user.data.lng).toFixed(1)} KM\n\nAap direct call kar sakte hai.`
         );
-        await sendText(from, `✅ Customer ko aapka number bhej diya gaya hai.`);
+        await sendText(from, `✅ Customer ko aapka contact bhej diya gaya hai.`);
       }
       return res.sendStatus(200);
     }
@@ -177,7 +173,7 @@ app.post('/webhook', async (req, res) => {
     // STEP 3: DISTANCE OR SHOP NAME
     } else if (user.step === 'customer_dist') {
       saveUser(from, { step: 'location_wait', data: {...user.data, distance: parseInt(reply_id.split('_')[1])} });
-      await sendText(from, `📍 Ab apna Exact Location bhejo\n\n📎 dabao → Location → Send Current Location`);
+      await sendText(from, `📍 Ab apna Exact Location bhejo\n\n📎 dabao → Location → Send Current Location\n\nNote: Mobile WhatsApp App se hi kaam karega`);
 
     } else if (user.step === 'provider_name' && msg.type === 'text') {
       saveUser(from, { step: 'location_wait', data: {...user.data, shop_name: msg.text.body} });
@@ -264,8 +260,8 @@ app.post('/webhook', async (req, res) => {
         if (user.role === 'provider') {
           // PROVIDER REGISTER KARO
           saveProvider(finalData);
-          saveUser(from, { step: 'done' });
-          await sendText(from, `✅ ${user.data.provider_type} Register Ho Gaya!\n\nAapka: ${user.data.shop_name}\nCategory: ${user.data.main_cat_title}\nSub: ${user.data.sub_cat_title}\n\nJab koi customer is category me requirement dalega to aapko turant message milega.`);
+          saveUser(from, { step: 'done', data: finalData });
+          await sendText(from, `✅ ${user.data.provider_type} Register Ho Gaya!\n\nShop: ${user.data.shop_name}\nCategory: ${user.data.main_cat_title}\nSub: ${user.data.sub_cat_title}\n\nJab koi customer is category me requirement dalega to aapko turant message milega.`);
 
         } else {
           // CUSTOMER REQUEST - PROVIDERS KO ALERT BHEJO
@@ -277,7 +273,6 @@ app.post('/webhook', async (req, res) => {
             const dist = getDistance(user.data.lat, user.data.lng, provider.lat, provider.lng);
             if (dist <= user.data.distance) {
               matchedProviders++;
-              // Provider ko alert bhejo
               await sendButtons(provider.whatsapp,
                 `🔔 New Customer Request!\n\nCategory: ${user.data.main_cat_title}\nSub: ${user.data.sub_cat_title}\nDistance: ${dist.toFixed(1)} KM\nDetails: ${user.data.other_text || 'No details'}\n\nKya aap interested hai?`,
                 [{ type: 'reply', reply: { id: `interested_${requestId}`, title: '✅ Interested' } }]
