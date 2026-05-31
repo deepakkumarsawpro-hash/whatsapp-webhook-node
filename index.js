@@ -73,6 +73,15 @@ async function sendText(to, text) {
   } catch (e) { console.error('Text Error:', e.response?.data || e.message); }
 }
 
+async function downloadMedia(mediaId) {
+  try {
+    const mediaUrl = await axios.get(`https://graph.facebook.com/v20.0/${mediaId}`, {
+      headers: { 'Authorization': `Bearer ${WHATSAPP_TOKEN}` }
+    });
+    return mediaUrl.data.url;
+  } catch (e) { return null; }
+}
+
 app.get('/webhook', (req, res) => {
   if (req.query['hub.verify_token'] === VERIFY_TOKEN) res.send(req.query['hub.challenge']);
   else res.sendStatus(403);
@@ -145,7 +154,7 @@ app.post('/webhook', async (req, res) => {
       ]);
 
     } else if (user.step === 'location_wait' && msg.type!== 'location') {
-      await sendText(from, `❌ Location nahi mila!\n\n📍 Sirf GPS Location bhejo\n📎 → Location → Send Current Location\n\nText ya Pincode mat bhejo`);
+      await sendText(from, `❌ Location nahi mila!\n\n📍 Sirf GPS Location bhejo\n📎 → Location → Send Current Location\n\nText mat bhejo`);
 
     // STEP 5: SUB CATEGORY
     } else if (user.step === 'main_category') {
@@ -166,12 +175,37 @@ app.post('/webhook', async (req, res) => {
         ]);
       }
 
-    // STEP 6: SUB CATEGORY SELECTED - AB WHATSAPP NUMBER MANGO
+    // STEP 6: SUB CATEGORY SELECTED - PHOTO/TEXT OPTION WAPAS LAYA
     } else if (user.step === 'sub_category') {
       const mainCat = CATEGORIES[user.role].main_categories.find(c => c.id === user.data.main_cat);
       const subCat = mainCat.sub_categories.find(s => s.id === reply_id);
 
-      saveUser(from, { step: 'whatsapp_num', data: {...user.data, sub_cat: reply_id, sub_cat_title: subCat.title} });
+      saveUser(from, { step: 'other_info', data: {...user.data, sub_cat: reply_id, sub_cat_title: subCat.title} });
+      await sendButtons(from, `Extra details ya photo dena hai?`, [
+        { type: 'reply', reply: { id: 'other_photo', title: '📷 Photo' } },
+        { type: 'reply', reply: { id: 'other_text', title: '✍️ Text' } },
+        { type: 'reply', reply: { id: 'other_skip', title: 'Skip' } }
+      ]);
+
+    } else if (user.step === 'other_info' && reply_id === 'other_photo') {
+      saveUser(from, { step: 'photo_upload' });
+      await sendText(from, `📷 Photo bhejo`);
+
+    } else if (user.step === 'photo_upload' && msg.type === 'image') {
+      const imageUrl = await downloadMedia(msg.image.id);
+      saveUser(from, { step: 'whatsapp_num', data: {...user.data, photo_url: imageUrl} });
+      await sendText(from, `✅ Photo save ho gaya!\n\n📱 Contact ke liye WhatsApp Number bhejo\n\nExample: 9876543210`);
+
+    } else if (user.step === 'other_info' && reply_id === 'other_text') {
+      saveUser(from, { step: 'other_text_wait' });
+      await sendText(from, `Details type karo:`);
+
+    } else if (user.step === 'other_text_wait' && msg.type === 'text') {
+      saveUser(from, { step: 'whatsapp_num', data: {...user.data, other_text: msg.text.body} });
+      await sendText(from, `📱 Contact ke liye WhatsApp Number bhejo\n\nExample: 9876543210`);
+
+    } else if (user.step === 'other_info' && reply_id === 'other_skip') {
+      saveUser(from, { step: 'whatsapp_num' });
       await sendText(from, `📱 Contact ke liye WhatsApp Number bhejo\n\nExample: 9876543210`);
 
     // STEP 7: WHATSAPP NUMBER RECEIVED - DONE
@@ -180,7 +214,7 @@ app.post('/webhook', async (req, res) => {
       if (/^\d{10}$/.test(contact)) {
         saveUser(from, { step: 'done', data: {...user.data, contact: contact} });
         await sendButtons(from,
-          `✅ Done!\n\nCategory: ${user.data.main_cat_title}\nSub: ${user.data.sub_cat_title}\nContact: ${contact}\nLocation: GPS Saved\n\nFir se shuru kare?`,
+          `✅ Done!\n\nCategory: ${user.data.main_cat_title}\nSub: ${user.data.sub_cat_title}\nContact: ${contact}\nLocation: GPS Saved\nPhoto: ${user.data.photo_url? 'Yes' : 'No'}\nDetails: ${user.data.other_text || 'No'}\n\nFir se shuru kare?`,
           [{ type: 'reply', reply: { id: 'restart', title: '🔄 Restart' } }]
         );
       } else {
