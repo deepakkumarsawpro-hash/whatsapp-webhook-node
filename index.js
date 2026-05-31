@@ -8,19 +8,25 @@ const WHATSAPP_TOKEN = process.env.WHATSAPP_TOKEN;
 const PHONE_NUMBER_ID = process.env.PHONE_NUMBER_ID;
 const VERIFY_TOKEN = process.env.VERIFY_TOKEN;
 
-const DB_FILE = 'users.json';
-if (!fs.existsSync(DB_FILE)) fs.writeFileSync(DB_FILE, '{}');
+const USERS_FILE = 'users.json';
+const PROVIDERS_FILE = 'providers.json';
+const REQUESTS_FILE = 'requests.json';
+
+// Files create karo agar nahi hai
+if (!fs.existsSync(USERS_FILE)) fs.writeFileSync(USERS_FILE, '{}');
+if (!fs.existsSync(PROVIDERS_FILE)) fs.writeFileSync(PROVIDERS_FILE, '[]');
+if (!fs.existsSync(REQUESTS_FILE)) fs.writeFileSync(REQUESTS_FILE, '[]');
 
 const CATEGORIES = {
   "customer": {
     "main_categories": [
-      { "id": "cat_construction", "title": "Construction & Home Improvement", "description": "Mason, Plumber, Electrician", "sub_categories": [{ "id": "sub_mason", "title": "Mason - मिस्त्री" }, { "id": "sub_plumber", "title": "Plumber" }, { "id": "sub_electrician", "title": "Electrician" }, { "id": "sub_carpenter", "title": "Carpenter" }, { "id": "sub_paint", "title": "Paint & Hardware" }] },
-      { "id": "cat_automotive", "title": "Automotive & Logistics", "description": "Mechanic, Transport, Courier", "sub_categories": [{ "id": "sub_mechanic", "title": "Mechanic" }, { "id": "sub_spare", "title": "Spare Parts" }, { "id": "sub_transport", "title": "Transport" }, { "id": "sub_courier", "title": "Courier" }] },
-      { "id": "cat_food", "title": "Food & Hospitality", "description": "Restaurant, Catering, Bakery", "sub_categories": [{ "id": "sub_restaurant", "title": "Restaurant/Dhaba" }, { "id": "sub_catering", "title": "Catering/Events" }, { "id": "sub_bakery", "title": "Bakery/Dairy" }] },
-      { "id": "cat_retail", "title": "Retail & Daily Needs", "description": "Kirana, Electronics, Fashion", "sub_categories": [{ "id": "sub_kirana", "title": "Grocery/Kirana" }, { "id": "sub_electronics", "title": "Electronics" }, { "id": "sub_fashion", "title": "Fashion/Tailor" }, { "id": "sub_stationery", "title": "Stationery/Printing" }] },
-      { "id": "cat_healthcare", "title": "Healthcare & Education", "description": "Doctor, Pharmacy, Coaching", "sub_categories": [{ "id": "sub_clinic", "title": "Clinic/Doctor" }, { "id": "sub_pharmacy", "title": "Pharmacy" }, { "id": "sub_coaching", "title": "Coaching/Tutor" }] },
-      { "id": "cat_personal", "title": "Personal & Professional Services", "description": "Salon, Cleaning, Legal", "sub_categories": [{ "id": "sub_salon", "title": "Salon/Beauty" }, { "id": "sub_cleaning", "title": "Cleaning" }, { "id": "sub_financial", "title": "Financial/Legal" }, { "id": "sub_realestate", "title": "Real Estate" }] },
-      { "id": "cat_agriculture", "title": "Agriculture & Farming", "description": "Seeds, Equipment, Tractor", "sub_categories": [{ "id": "sub_agri_inputs", "title": "Agri-Inputs" }, { "id": "sub_agri_equip", "title": "Agri-Equipment" }] }
+      { "id": "cat_construction", "title": "Construction & Home Improvement", "sub_categories": [{ "id": "sub_mason", "title": "Mason - मिस्त्री" }, { "id": "sub_plumber", "title": "Plumber" }, { "id": "sub_electrician", "title": "Electrician" }, { "id": "sub_carpenter", "title": "Carpenter" }, { "id": "sub_paint", "title": "Paint & Hardware" }] },
+      { "id": "cat_automotive", "title": "Automotive & Logistics", "sub_categories": [{ "id": "sub_mechanic", "title": "Mechanic" }, { "id": "sub_spare", "title": "Spare Parts" }, { "id": "sub_transport", "title": "Transport" }, { "id": "sub_courier", "title": "Courier" }] },
+      { "id": "cat_food", "title": "Food & Hospitality", "sub_categories": [{ "id": "sub_restaurant", "title": "Restaurant/Dhaba" }, { "id": "sub_catering", "title": "Catering/Events" }, { "id": "sub_bakery", "title": "Bakery/Dairy" }] },
+      { "id": "cat_retail", "title": "Retail & Daily Needs", "sub_categories": [{ "id": "sub_kirana", "title": "Grocery/Kirana" }, { "id": "sub_electronics", "title": "Electronics" }, { "id": "sub_fashion", "title": "Fashion/Tailor" }, { "id": "sub_stationery", "title": "Stationery/Printing" }] },
+      { "id": "cat_healthcare", "title": "Healthcare & Education", "sub_categories": [{ "id": "sub_clinic", "title": "Clinic/Doctor" }, { "id": "sub_pharmacy", "title": "Pharmacy" }, { "id": "sub_coaching", "title": "Coaching/Tutor" }] },
+      { "id": "cat_personal", "title": "Personal & Professional Services", "sub_categories": [{ "id": "sub_salon", "title": "Salon/Beauty" }, { "id": "sub_cleaning", "title": "Cleaning" }, { "id": "sub_financial", "title": "Financial/Legal" }, { "id": "sub_realestate", "title": "Real Estate" }] },
+      { "id": "cat_agriculture", "title": "Agriculture & Farming", "sub_categories": [{ "id": "sub_agri_inputs", "title": "Agri-Inputs" }, { "id": "sub_agri_equip", "title": "Agri-Equipment" }] }
     ]
   },
   "provider": {
@@ -36,15 +42,42 @@ const CATEGORIES = {
   }
 };
 
+// ===== HELPER FUNCTIONS =====
 function getUser(number) {
-  const db = JSON.parse(fs.readFileSync(DB_FILE));
+  const db = JSON.parse(fs.readFileSync(USERS_FILE));
   return db[number] || { step: 'welcome', data: {} };
 }
 
 function saveUser(number, data) {
-  const db = JSON.parse(fs.readFileSync(DB_FILE));
+  const db = JSON.parse(fs.readFileSync(USERS_FILE));
   db[number] = {...getUser(number),...data};
-  fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2));
+  fs.writeFileSync(USERS_FILE, JSON.stringify(db, null, 2));
+}
+
+function saveProvider(providerData) {
+  const providers = JSON.parse(fs.readFileSync(PROVIDERS_FILE));
+  // Agar pehle se hai to update karo
+  const idx = providers.findIndex(p => p.whatsapp === providerData.whatsapp);
+  if (idx >= 0) providers[idx] = providerData;
+  else providers.push(providerData);
+  fs.writeFileSync(PROVIDERS_FILE, JSON.stringify(providers, null, 2));
+}
+
+function getProviders(mainCat, subCat) {
+  const providers = JSON.parse(fs.readFileSync(PROVIDERS_FILE));
+  return providers.filter(p => p.main_cat === mainCat && p.sub_cat === subCat);
+}
+
+function saveRequest(requestData) {
+  const requests = JSON.parse(fs.readFileSync(REQUESTS_FILE));
+  requests.push({...requestData, id: Date.now(), status: 'open'});
+  fs.writeFileSync(REQUESTS_FILE, JSON.stringify(requests, null, 2));
+  return requests[requests.length - 1].id;
+}
+
+function getRequest(id) {
+  const requests = JSON.parse(fs.readFileSync(REQUESTS_FILE));
+  return requests.find(r => r.id === id);
 }
 
 async function sendButtons(to, bodyText, buttons) {
@@ -73,13 +106,14 @@ async function sendText(to, text) {
   } catch (e) { console.error('Text Error:', e.response?.data || e.message); }
 }
 
-async function downloadMedia(mediaId) {
-  try {
-    const mediaUrl = await axios.get(`https://graph.facebook.com/v20.0/${mediaId}`, {
-      headers: { 'Authorization': `Bearer ${WHATSAPP_TOKEN}` }
-    });
-    return mediaUrl.data.url;
-  } catch (e) { return null; }
+// ===== DISTANCE CALCULATION =====
+function getDistance(lat1, lon1, lat2, lon2) {
+  const R = 6371; // KM
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
 }
 
 app.get('/webhook', (req, res) => {
@@ -103,6 +137,20 @@ app.post('/webhook', async (req, res) => {
   }
 
   try {
+    // PROVIDER REPLY TO CUSTOMER REQUEST
+    if (reply_id.startsWith('interested_')) {
+      const requestId = reply_id.split('_')[1];
+      const request = getRequest(parseInt(requestId));
+      if (request) {
+        // Customer ko provider ka contact bhejo
+        await sendText(request.customer_whatsapp,
+          `✅ Ek ${user.data.sub_cat_title} available hai!\n\nName: ${user.data.shop_name}\nContact: ${user.data.contact}\n\nAap direct baat kar sakte hai.`
+        );
+        await sendText(from, `✅ Customer ko aapka number bhej diya gaya hai.`);
+      }
+      return res.sendStatus(200);
+    }
+
     // STEP 1: WELCOME
     if (user.step === 'welcome' || reply_id === 'hi' || reply_id === 'restart' || reply_id === 'start') {
       saveUser(from, { step: 'role', data: {} });
@@ -122,14 +170,14 @@ app.post('/webhook', async (req, res) => {
           { type: 'reply', reply: { id: 'dist_10', title: '10 KM' } }
         ]);
       } else {
-        saveUser(from, { step: 'provider_name', role: 'provider' });
+        saveUser(from, { step: 'provider_name', role: 'provider', provider_type: reply_id === 'role_sale'? 'Sale' : 'Service' });
         await sendText(from, `Apni Shop/Service ka naam bhejo`);
       }
 
     // STEP 3: DISTANCE OR SHOP NAME
     } else if (user.step === 'customer_dist') {
-      saveUser(from, { step: 'location_wait', data: {...user.data, distance: reply_id} });
-      await sendText(from, `📍 Ab apna Exact Location bhejo\n\n📎 dabao → Location → Send Current Location\n\nNote: Mobile WhatsApp App se hi kaam karega`);
+      saveUser(from, { step: 'location_wait', data: {...user.data, distance: parseInt(reply_id.split('_')[1])} });
+      await sendText(from, `📍 Ab apna Exact Location bhejo\n\n📎 dabao → Location → Send Current Location`);
 
     } else if (user.step === 'provider_name' && msg.type === 'text') {
       saveUser(from, { step: 'location_wait', data: {...user.data, shop_name: msg.text.body} });
@@ -154,7 +202,7 @@ app.post('/webhook', async (req, res) => {
       ]);
 
     } else if (user.step === 'location_wait' && msg.type!== 'location') {
-      await sendText(from, `❌ Location nahi mila!\n\n📍 Sirf GPS Location bhejo\n📎 → Location → Send Current Location\n\nText mat bhejo`);
+      await sendText(from, `❌ Location nahi mila!\n\n📍 Sirf GPS Location bhejo\n📎 → Location → Send Current Location`);
 
     // STEP 5: SUB CATEGORY
     } else if (user.step === 'main_category') {
@@ -175,7 +223,7 @@ app.post('/webhook', async (req, res) => {
         ]);
       }
 
-    // STEP 6: SUB CATEGORY SELECTED - PHOTO/TEXT OPTION WAPAS LAYA
+    // STEP 6: SUB CATEGORY SELECTED - PHOTO/TEXT OPTION
     } else if (user.step === 'sub_category') {
       const mainCat = CATEGORIES[user.role].main_categories.find(c => c.id === user.data.main_cat);
       const subCat = mainCat.sub_categories.find(s => s.id === reply_id);
@@ -192,8 +240,7 @@ app.post('/webhook', async (req, res) => {
       await sendText(from, `📷 Photo bhejo`);
 
     } else if (user.step === 'photo_upload' && msg.type === 'image') {
-      const imageUrl = await downloadMedia(msg.image.id);
-      saveUser(from, { step: 'whatsapp_num', data: {...user.data, photo_url: imageUrl} });
+      saveUser(from, { step: 'whatsapp_num', data: {...user.data, has_photo: true} });
       await sendText(from, `✅ Photo save ho gaya!\n\n📱 Contact ke liye WhatsApp Number bhejo\n\nExample: 9876543210`);
 
     } else if (user.step === 'other_info' && reply_id === 'other_text') {
@@ -208,15 +255,39 @@ app.post('/webhook', async (req, res) => {
       saveUser(from, { step: 'whatsapp_num' });
       await sendText(from, `📱 Contact ke liye WhatsApp Number bhejo\n\nExample: 9876543210`);
 
-    // STEP 7: WHATSAPP NUMBER RECEIVED - DONE
+    // STEP 7: WHATSAPP NUMBER - FINAL STEP
     } else if (user.step === 'whatsapp_num' && msg.type === 'text') {
       const contact = msg.text.body.trim();
       if (/^\d{10}$/.test(contact)) {
-        saveUser(from, { step: 'done', data: {...user.data, contact: contact} });
-        await sendButtons(from,
-          `✅ Done!\n\nCategory: ${user.data.main_cat_title}\nSub: ${user.data.sub_cat_title}\nContact: ${contact}\nLocation: GPS Saved\nPhoto: ${user.data.photo_url? 'Yes' : 'No'}\nDetails: ${user.data.other_text || 'No'}\n\nFir se shuru kare?`,
-          [{ type: 'reply', reply: { id: 'restart', title: '🔄 Restart' } }]
-        );
+        const finalData = {...user.data, contact: contact, whatsapp: from};
+
+        if (user.role === 'provider') {
+          // PROVIDER REGISTER KARO
+          saveProvider(finalData);
+          saveUser(from, { step: 'done' });
+          await sendText(from, `✅ ${user.data.provider_type} Register Ho Gaya!\n\nAapka: ${user.data.shop_name}\nCategory: ${user.data.main_cat_title}\nSub: ${user.data.sub_cat_title}\n\nJab koi customer is category me requirement dalega to aapko turant message milega.`);
+
+        } else {
+          // CUSTOMER REQUEST - PROVIDERS KO ALERT BHEJO
+          const requestId = saveRequest({...finalData, customer_whatsapp: from});
+          const providers = getProviders(user.data.main_cat, user.data.sub_cat);
+
+          let matchedProviders = 0;
+          for (const provider of providers) {
+            const dist = getDistance(user.data.lat, user.data.lng, provider.lat, provider.lng);
+            if (dist <= user.data.distance) {
+              matchedProviders++;
+              // Provider ko alert bhejo
+              await sendButtons(provider.whatsapp,
+                `🔔 New Customer Request!\n\nCategory: ${user.data.main_cat_title}\nSub: ${user.data.sub_cat_title}\nDistance: ${dist.toFixed(1)} KM\nDetails: ${user.data.other_text || 'No details'}\n\nKya aap interested hai?`,
+                [{ type: 'reply', reply: { id: `interested_${requestId}`, title: '✅ Interested' } }]
+              );
+            }
+          }
+
+          saveUser(from, { step: 'done' });
+          await sendText(from, `✅ Request Submit Ho Gayi!\n\n${matchedProviders} ${user.data.sub_cat_title} providers ko alert bhej diya gaya hai.\n\nJab koi interested hoga to aapko unka contact mil jayega.`);
+        }
       } else {
         await sendText(from, `❌ Galat number!\n\n10 digit WhatsApp number bhejo\nExample: 9876543210`);
       }
@@ -231,4 +302,4 @@ app.post('/webhook', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`NearMe Bot Running`));
+app.listen(PORT, () => console.log(`NearMe Marketplace Bot Running`));
